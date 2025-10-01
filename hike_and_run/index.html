@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<head>
+    <title>Hike and Run</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" /><link rel="stylesheet" href="https://unpkg.com/@raruto/leaflet-elevation@2.2.1/dist/leaflet-elevation.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.6.0/Control.FullScreen.min.css" /><link rel="stylesheet" href="tours.css" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1 id="tour-title">Hike and Run</h1>
+    </div>
+
+    <div class="intro-text">
+        <p><A HREF="https://github.com/nst/HikeAndRun">https://github.com/nst/HikeAndRun</A></p>
+    </div>
+
+    <div id="overview-map"></div>
+
+    <div class="picker-container">
+         <svg id="category-picker" width="100%" height="180" viewBox="0 0 300 180">
+            <g data-category="Vaud"><rect x="1" y="1" width="98" height="58" rx="5"></rect><text x="50" y="35">Vaud</text></g>
+            <g data-category="Bern"><rect x="101" y="1" width="98" height="58" rx="5"></rect><text x="150" y="35">Bern</text></g>
+            <g data-category="Uri"><rect x="201" y="1" width="98" height="58" rx="5"></rect><text x="250" y="35">Uri</text></g>
+            <g data-category="Bas Valais"><rect x="1" y="61" width="98" height="58" rx="5"></rect><text x="50" y="95">Bas Valais</text></g>
+            <g data-category="Valais Central"><rect x="101" y="61" width="98" height="58" rx="5"></rect><text x="150" y="95">Valais Central</text></g>
+            <g data-category="Haut Valais"><rect x="201" y="61" width="98" height="58" rx="5"></rect><text x="250" y="95">Haut Valais</text></g>
+            <g data-category="France"><rect x="1" y="121" width="98" height="58" rx="5"></rect><text x="50" y="155">France</text></g>
+            <g data-category="Italy"><rect x="101" y="121" width="98" height="58" rx="5"></rect><text x="150" y="155">Italy</text></g>
+            <g data-category="Ticino"><rect x="201" y="121" width="98" height="58" rx="5"></rect><text x="250" y="155">Ticino</text></g>
+        </svg>
+    </div>
+
+    <div id="trackInfo"></div>
+    <div class="info-panel"><div id="additionalInfo"></div></div>
+    <div class="map-container"><div id="map"></div></div>
+    <div class="elevation-container"><div id="elevation"></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://unpkg.com/@raruto/leaflet-elevation@2.2.1/dist/leaflet-elevation.min.js"></script>
+<script src="https://unpkg.com/@mapbox/polyline@1.1.1/src/polyline.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.6.0/Control.FullScreen.min.js"></script>
+<script src="tours.js"></script>
+</body>
+</html>
