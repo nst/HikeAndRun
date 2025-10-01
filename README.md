@@ -48,7 +48,7 @@ The GPX file must be named exactly the same as the folder, with a `.gpx` extensi
 
 Example: `/tours/my_new_hike/my_new_hike.gpx`
 
-I use the script tools/gpx_processor.py to:
+I use the script [tools/gpx_processor.py](https://github.com/nst/HikeAndRun/blob/main/tools/gpx_processor.py) to:
 
   * clean a GPX file, removing timestamps
   * create the tour directory
@@ -112,4 +112,4 @@ Your new tour will then appear on the main list and overview map.
 
 #### License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/nst/HikeAndRun/blob/main/LICENSE) file for details.
