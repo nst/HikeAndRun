@@ -33,7 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- VIEW MANAGEMENT ---
     function showView(viewName) {
         const elements = {
-            overview: [document.getElementById('overview-map'), document.querySelector('.intro-text'), document.querySelector('.picker-container'), document.getElementById('trackInfo')],
+            overview: [document.getElementById('overview-map'), document.querySelector('.intro-text'), document.querySelector('.picker-container'), document.getElementById('trackInfo'), document.getElementById('videos')],
             detail: [document.querySelector('.map-container'), document.querySelector('.elevation-container'), document.querySelector('.info-panel'), document.getElementById('trackInfo')]
         };
         [...elements.overview, ...elements.detail].forEach(el => {
