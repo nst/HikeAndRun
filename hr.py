@@ -78,6 +78,8 @@ class GPXProcessor:
             # Metadata
             meta = ET.SubElement(new_gpx, 'metadata')
             is_race = tour_id.startswith("_")
+            
+            # Title Generation (FIXED: Corrected Emoji)
             title = f"🏁 {found_date.year} - {tour_id}" if (is_race and found_date) else (f"🏁 {tour_id}" if is_race else tour_id)
 
             ET.SubElement(meta, 'name').text = title
@@ -267,7 +269,8 @@ def run_pipeline(skip_images):
             
             # 1. Copy GPX
             shutil.copy2(src_gpx, os.path.join(dst_folder, f"{tour_id}.gpx"))
-            
+            print(f"  > Copied GPX: {tour_id}.gpx")
+
             # 2. Copy Photos
             if not skip_images:
                 for img in ['1.jpg', '2.jpg', '3.jpg']:
@@ -279,18 +282,13 @@ def run_pipeline(skip_images):
     # --- PHASE 3: INDEX ---
     print(f"\n[Phase 3] Generating Index...")
 
-    # We iterate SRC dirs sorted alphabetically.
-    # This automatically respects "10...", "20..." order.
-    
     final_index = []
 
     for category_folder in sorted(os.listdir(SRC_DIR)):
         cat_path = os.path.join(SRC_DIR, category_folder)
         if not os.path.isdir(cat_path) or category_folder.startswith('.'): continue
 
-        # Clean the display name (remove "10 ", "20_")
         display_category = clean_category_name(category_folder)
-        
         current_cat_tours = []
 
         for tour_id in sorted(os.listdir(cat_path)):
@@ -306,18 +304,20 @@ def run_pipeline(skip_images):
                 with open(src_cache, 'r') as f: stats = json.load(f)
             except: continue
             
-            # Read Metadata (Live GPX)
+            # Read Metadata (Live GPX from Web/Dst)
             name, date_str = processor.parse_metadata(web_gpx)
             
             # Process Metadata
             title = name.strip() if name else tour_id
             is_race = tour_id.startswith("_")
             
+            # FIXED: Corrected Emoji Check
             if is_race and "🏁" not in title:
                 year = None
                 if date_str:
                     match = re.search(r'\b(19|20)\d{2}\b', date_str)
                     if match: year = match.group(0)
+                # FIXED: Corrected Emoji Injection
                 title = f"🏁 {year} - {title}" if year else f"🏁 {title}"
             
             # Date Sort Helper
@@ -339,7 +339,7 @@ def run_pipeline(skip_images):
             
             current_cat_tours.append(entry)
 
-        # Sort Tours within Category: Race(1) > Date Desc > Elevation Desc > Name
+        # Sort Tours
         if current_cat_tours:
             current_cat_tours.sort(key=lambda x: (
                 1 if x['_is_race'] else 0,
