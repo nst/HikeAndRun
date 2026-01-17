@@ -7,10 +7,12 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import re
 import argparse
+import time
 
 # --- Configuration ---
 SRC_DIR = "src"
 WEB_DIR = "hike_and_run/tours"
+COPY_TIMESTAMP_FILE = "last_copy.txt"  # Tracks the last time files were copied
 
 # --- Dependencies ---
 try:
@@ -79,7 +81,7 @@ class GPXProcessor:
             meta = ET.SubElement(new_gpx, 'metadata')
             is_race = tour_id.startswith("_")
             
-            # Title Generation (FIXED: Corrected Emoji)
+            # Title Generation
             title = f"🏁 {found_date.year} - {tour_id}" if (is_race and found_date) else (f"🏁 {tour_id}" if is_race else tour_id)
 
             ET.SubElement(meta, 'name').text = title
@@ -219,9 +221,6 @@ def run_pipeline(skip_images):
 
             # A. Generate Clean GPX if missing
             if not os.path.exists(clean_gpx):
-                # 1. Glob all GPX files
-                # 2. Filter out the target clean file
-                # 3. SORT them alphanumerically
                 raw_files = sorted([f for f in glob.glob(os.path.join(tour_path, "*.gpx")) if f != clean_gpx])
                 
                 if raw_files:
@@ -254,6 +253,14 @@ def run_pipeline(skip_images):
     print(f"\n[Phase 2] Publishing to ({WEB_DIR})...")
     os.makedirs(WEB_DIR, exist_ok=True)
     
+    # 1. Determine Last Run Timestamp
+    last_copy_ts = 0.0
+    if os.path.exists(COPY_TIMESTAMP_FILE):
+        last_copy_ts = os.path.getmtime(COPY_TIMESTAMP_FILE)
+        print(f"  [Info] Incremental copy: Only files newer than {last_copy_ts}")
+    else:
+        print("  [Info] First run (or timestamp missing): Copying all files.")
+
     # Selective Tour Copy
     copied_count = 0
     for root, dirs, files in os.walk(SRC_DIR):
@@ -262,22 +269,26 @@ def run_pipeline(skip_images):
         tour_id = os.path.basename(root)
         src_gpx = os.path.join(root, f"{tour_id}.gpx")
         
-        # Only copy if we have a valid processed GPX
+        # Only process if we have a valid processed GPX
         if os.path.exists(src_gpx):
             dst_folder = os.path.join(WEB_DIR, tour_id)
             os.makedirs(dst_folder, exist_ok=True)
             
-            # 1. Copy GPX
-            shutil.copy2(src_gpx, os.path.join(dst_folder, f"{tour_id}.gpx"))
-            print(f"  > Copied GPX: {tour_id}.gpx")
+            # 1. Copy GPX (Only if modified)
+            if os.path.getmtime(src_gpx) > last_copy_ts:
+                # copy2 preserves timestamps
+                shutil.copy2(src_gpx, os.path.join(dst_folder, f"{tour_id}.gpx"))
+                print(f"  > Copied GPX: {tour_id}.gpx")
+                copied_count += 1
 
-            # 2. Copy Photos
+            # 2. Copy Photos (Only if modified)
             if not skip_images:
                 for img in ['1.jpg', '2.jpg', '3.jpg']:
                     src_img = os.path.join(root, img)
                     if os.path.exists(src_img):
-                        shutil.copy2(src_img, os.path.join(dst_folder, img))
-            copied_count += 1
+                        if os.path.getmtime(src_img) > last_copy_ts:
+                            shutil.copy2(src_img, os.path.join(dst_folder, img))
+                            print(f"  > Copied Photo: {tour_id}/{img}")
 
     # --- PHASE 3: INDEX ---
     print(f"\n[Phase 3] Generating Index...")
@@ -311,13 +322,11 @@ def run_pipeline(skip_images):
             title = name.strip() if name else tour_id
             is_race = tour_id.startswith("_")
             
-            # FIXED: Corrected Emoji Check
             if is_race and "🏁" not in title:
                 year = None
                 if date_str:
                     match = re.search(r'\b(19|20)\d{2}\b', date_str)
                     if match: year = match.group(0)
-                # FIXED: Corrected Emoji Injection
                 title = f"🏁 {year} - {title}" if year else f"🏁 {title}"
             
             # Date Sort Helper
@@ -360,7 +369,11 @@ def run_pipeline(skip_images):
     with open(os.path.join(WEB_DIR, "tours.json"), 'w', encoding='utf-8') as f:
         json.dump(final_index, f, indent=4, ensure_ascii=False)
     
-    print(f"Done! Site built in '{WEB_DIR}'. Indexed {copied_count} tours.")
+    # Update Timestamp File at end of successful run
+    with open(COPY_TIMESTAMP_FILE, 'w') as f:
+        f.write("timestamp")
+    
+    print(f"Done! Site built in '{WEB_DIR}'. Indexed {len(final_index)} categories.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
