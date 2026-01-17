@@ -4,10 +4,10 @@ A static, lightweight web software for displaying and sharing GPX tracks.
 
 ### Features
 
-- tours list and details
-- GPX file download
-- overview map with clickable paths
-- 3 photos per tour
+  * tours list and details
+  * GPX file download
+  * overview map with clickable paths
+  * 3 photos per tour
 
 ### Live Demo
 
@@ -18,46 +18,51 @@ A static, lightweight web software for displaying and sharing GPX tracks.
 No database. Everything runs in the browser.
 
 ```
-tours.html         - HTML container
-tours.css          - stylesheet
-tours.js           - logic to displaying maps, lists, and tours
-                   
-/tours/tours.json  - tours index
-/tours/*/          - one directory per tour
+# Python Script
+hr.py                            - generate public GPX files and tours index
+
+# Front end
+/hike_and_run/tours.html         - HTML container
+/hike_and_run/tours.css          - stylesheet
+/hike_and_run/tours.js           - logic to displaying maps, lists, and tours
+
+# Data
+/hike_and_run//tours/tours.json  - tours index
+/hike_and_run//tours/*/          - one directory per tour
 ```
 
-### Installation
+### Adding a new Tour
 
-Copy the `hike_and_run` directory on your web server.
+#### Step 1: Add the GPX File
 
-There's no step 2.
+Copy a GPX file in `/src/REGION/TOUR_ID/`.
 
------
+Example: `/src/France/mont_blanc/`.
 
-### How to Add a New Tour
+A tour can be made of several GPX files.
 
-#### Step 1: Create the Tour Folder
+* **Ordering:** You can prefix region folders with numbers (e.g., `10 Valais`, `20 France`) to define the sort order.
+* **Races:** If the tour is a race, start the folder name with an underscore (e.g., `_sierre_zinal`).
 
-Pick a unique ID (eg. `my_new_hike`) and create the tour folder in `/tours/`.
+#### Step 2: Generate the Public GPX file and the Metadata
 
-Example: `/tours/my_new_hike/`
+Run `python3 hr.py`.
 
-#### Step 2: Add the GPX File
+The script will:
 
-The GPX file must be named exactly the same as the folder, with a `.gpx` extension.
+  * merge multiple GPX files if present
+  * create a clean file at `src/REGION/TOUR_ID/TOUR_ID.gpx`
+  * move the original raw GPX files into `~/.Trash`
+  * add metadata (title, author, copyright)
+  * auto-format dates: `YYYY-MM-DD` for races, `Month YYYY` for tours
+  * generate a cached geometry file at `src/REGION/TOUR_ID/polyline.json`
+  * copy the clean GPX and photos to the web folder: `hike_and_run/tours/TOUR_ID/`
+  * update the global index at `hike_and_run/tours/tours.json`
+  * tours are ordered by region
+  * races are sorted by date (newest first)
+  * other tours are sorted by highest altitude
 
-Example: `/tours/my_new_hike/my_new_hike.gpx`
-
-I use the script [tools/gpx_processor.py](https://github.com/nst/HikeAndRun/blob/main/tools/gpx_processor.py) to:
-
-  * clean a GPX file, removing timestamps
-  * create the tour directory
-  * create the cleaned GPX inside the tour directory
-  * output the polyline to be copied into tours.json
-
-Depending on what you want to achieve, your workflow may vary.
-
-#### Step 3: Add Metadata to the GPX File
+#### Step 3: Edit the Source GPX Metadata
 
 Example:
 
@@ -73,42 +78,21 @@ Example:
       <keywords>2025-06-01</keywords>
     </metadata>
 
-
 #### Step 4: Add the Photos
 
 Add exactly three photos, named `1.jpg`, `2.jpg`, and `3.jpg`.
 
-#### Step 5: Update `tours.json`
+### Local Run
 
-Finally, open the main `/tours/tours.json` file and add an entry for your new tour.
+You can run Hike and Run localy with:
 
-You will need to provide:
+    python3 -m http.server -d hike_and_run
 
-  * `"id"`: The name of the folder you created.
-  * `"title"`: The full, display-friendly name of the tour.
-  * `"summary_polyline"`: The encoded polyline string for the overview map.
+and open [http://localhost:8000/](http://localhost:8000/)
 
-Add your new tour to the appropriate geographical category.
+### Deployment
 
-Example:
-
-```json
-[
-  {
-    "category": "Vaud",
-    "tours": [
-      {
-        "id": "my_new_hike",
-        "title": "My New Hike 2500 m",
-        "summary_polyline": "encoded string for your new tour..."
-      }
-    ]
-  },
-...
-]
-```
-
-Your new tour will then appear on the main list and overview map.
+Copy the `hike_and_run` directory on your web server.
 
 #### License
 
