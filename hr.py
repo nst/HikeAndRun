@@ -12,7 +12,7 @@ import time
 # --- Configuration ---
 SRC_DIR = "src"
 WEB_DIR = "hike_and_run/tours"
-COPY_TIMESTAMP_FILE = "last_copy.txt"  # Tracks the last time files were copied
+COPY_TIMESTAMP_FILE = "last_run.txt"  # Tracks the last time files were copied
 
 # --- Dependencies ---
 try:
@@ -81,7 +81,7 @@ class GPXProcessor:
             meta = ET.SubElement(new_gpx, 'metadata')
             is_race = tour_id.startswith("_")
             
-            # Title Generation
+            # Title Generation (Fixed Emoji)
             title = f"🏁 {found_date.year} - {tour_id}" if (is_race and found_date) else (f"🏁 {tour_id}" if is_race else tour_id)
 
             ET.SubElement(meta, 'name').text = title
@@ -254,15 +254,16 @@ def run_pipeline(skip_images):
     os.makedirs(WEB_DIR, exist_ok=True)
     
     # 1. Determine Last Run Timestamp
-    last_copy_ts = 0.0
+    last_run_ts = 0.0
     if os.path.exists(COPY_TIMESTAMP_FILE):
-        last_copy_ts = os.path.getmtime(COPY_TIMESTAMP_FILE)
-        print(f"  [Info] Incremental copy: Only files newer than {last_copy_ts}")
+        last_run_ts = os.path.getmtime(COPY_TIMESTAMP_FILE)
+        print(f"  [Info] Incremental copy: Only files newer than {last_run_ts}")
     else:
         print("  [Info] First run (or timestamp missing): Copying all files.")
 
     # Selective Tour Copy
     copied_count = 0
+    
     for root, dirs, files in os.walk(SRC_DIR):
         if os.path.basename(root) == SRC_DIR: continue
         
@@ -275,7 +276,7 @@ def run_pipeline(skip_images):
             os.makedirs(dst_folder, exist_ok=True)
             
             # 1. Copy GPX (Only if modified)
-            if os.path.getmtime(src_gpx) > last_copy_ts:
+            if os.path.getmtime(src_gpx) > last_run_ts:
                 # copy2 preserves timestamps
                 shutil.copy2(src_gpx, os.path.join(dst_folder, f"{tour_id}.gpx"))
                 print(f"  > Copied GPX: {tour_id}.gpx")
@@ -286,94 +287,99 @@ def run_pipeline(skip_images):
                 for img in ['1.jpg', '2.jpg', '3.jpg']:
                     src_img = os.path.join(root, img)
                     if os.path.exists(src_img):
-                        if os.path.getmtime(src_img) > last_copy_ts:
+                        if os.path.getmtime(src_img) > last_run_ts:
                             shutil.copy2(src_img, os.path.join(dst_folder, img))
                             print(f"  > Copied Photo: {tour_id}/{img}")
+                            copied_count += 1
 
     # --- PHASE 3: INDEX ---
-    print(f"\n[Phase 3] Generating Index...")
-
-    final_index = []
-
-    for category_folder in sorted(os.listdir(SRC_DIR)):
-        cat_path = os.path.join(SRC_DIR, category_folder)
-        if not os.path.isdir(cat_path) or category_folder.startswith('.'): continue
-
-        display_category = clean_category_name(category_folder)
-        current_cat_tours = []
-
-        for tour_id in sorted(os.listdir(cat_path)):
-            # Paths
-            web_gpx = os.path.join(WEB_DIR, tour_id, f"{tour_id}.gpx")
-            src_cache = os.path.join(cat_path, tour_id, "polyline.json")
-            
-            if not os.path.exists(web_gpx) or not os.path.exists(src_cache):
-                continue
-            
-            # Read Stats (Cache)
-            try:
-                with open(src_cache, 'r') as f: stats = json.load(f)
-            except: continue
-            
-            # Read Metadata (Live GPX from Web/Dst)
-            name, date_str = processor.parse_metadata(web_gpx)
-            
-            # Process Metadata
-            title = name.strip() if name else tour_id
-            is_race = tour_id.startswith("_")
-            
-            if is_race and "🏁" not in title:
-                year = None
-                if date_str:
-                    match = re.search(r'\b(19|20)\d{2}\b', date_str)
-                    if match: year = match.group(0)
-                title = f"🏁 {year} - {title}" if year else f"🏁 {title}"
-            
-            # Date Sort Helper
-            sort_ts = 0.0
-            if date_str:
-                try: sort_ts = datetime.fromisoformat(date_str).timestamp()
-                except:
-                    try: sort_ts = datetime.strptime(date_str, "%B %Y").timestamp()
-                    except: pass
-
-            entry = {
-                "id": tour_id,
-                "title": title,
-                "summary_polyline": stats.get('summary_polyline', ''),
-                "_is_race": is_race,
-                "_max_ele": stats.get('max_elevation', 0),
-                "_sort_ts": sort_ts
-            }
-            
-            current_cat_tours.append(entry)
-
-        # Sort Tours
-        if current_cat_tours:
-            current_cat_tours.sort(key=lambda x: (
-                1 if x['_is_race'] else 0,
-                -x['_sort_ts'] if x['_is_race'] else -x['_max_ele'],
-                x['title']
-            ))
-            
-            # Cleanup internal keys
-            for t in current_cat_tours:
-                for k in ['_is_race', '_max_ele', '_sort_ts']: t.pop(k, None)
-                
-            final_index.append({
-                "category": display_category,
-                "tours": current_cat_tours
-            })
-
-    # Save
-    with open(os.path.join(WEB_DIR, "tours.json"), 'w', encoding='utf-8') as f:
-        json.dump(final_index, f, indent=4, ensure_ascii=False)
+    tours_json_path = os.path.join(WEB_DIR, "tours.json")
     
+    # OPTIMIZATION: Skip Indexing if nothing changed and index exists
+    if copied_count == 0 and os.path.exists(tours_json_path):
+        print(f"\n[Phase 3] Index Skipped (No new files, tours.json exists).")
+    else:
+        print(f"\n[Phase 3] Generating Index...")
+        final_index = []
+
+        for category_folder in sorted(os.listdir(SRC_DIR)):
+            cat_path = os.path.join(SRC_DIR, category_folder)
+            if not os.path.isdir(cat_path) or category_folder.startswith('.'): continue
+
+            display_category = clean_category_name(category_folder)
+            current_cat_tours = []
+
+            for tour_id in sorted(os.listdir(cat_path)):
+                # Paths
+                web_gpx = os.path.join(WEB_DIR, tour_id, f"{tour_id}.gpx")
+                src_cache = os.path.join(cat_path, tour_id, "polyline.json")
+                
+                if not os.path.exists(web_gpx) or not os.path.exists(src_cache):
+                    continue
+                
+                # Read Stats (Cache)
+                try:
+                    with open(src_cache, 'r') as f: stats = json.load(f)
+                except: continue
+                
+                # Read Metadata (Live GPX from Web/Dst)
+                name, date_str = processor.parse_metadata(web_gpx)
+                
+                # Process Metadata
+                title = name.strip() if name else tour_id
+                is_race = tour_id.startswith("_")
+                
+                if is_race and "🏁" not in title:
+                    year = None
+                    if date_str:
+                        match = re.search(r'\b(19|20)\d{2}\b', date_str)
+                        if match: year = match.group(0)
+                    title = f"🏁 {year} - {title}" if year else f"🏁 {title}"
+                
+                # Date Sort Helper
+                sort_ts = 0.0
+                if date_str:
+                    try: sort_ts = datetime.fromisoformat(date_str).timestamp()
+                    except:
+                        try: sort_ts = datetime.strptime(date_str, "%B %Y").timestamp()
+                        except: pass
+
+                entry = {
+                    "id": tour_id,
+                    "title": title,
+                    "summary_polyline": stats.get('summary_polyline', ''),
+                    "_is_race": is_race,
+                    "_max_ele": stats.get('max_elevation', 0),
+                    "_sort_ts": sort_ts
+                }
+                
+                current_cat_tours.append(entry)
+
+            # Sort Tours
+            if current_cat_tours:
+                current_cat_tours.sort(key=lambda x: (
+                    1 if x['_is_race'] else 0,
+                    -x['_sort_ts'] if x['_is_race'] else -x['_max_ele'],
+                    x['title']
+                ))
+                
+                # Cleanup internal keys
+                for t in current_cat_tours:
+                    for k in ['_is_race', '_max_ele', '_sort_ts']: t.pop(k, None)
+                    
+                final_index.append({
+                    "category": display_category,
+                    "tours": current_cat_tours
+                })
+
+        # Save
+        with open(tours_json_path, 'w', encoding='utf-8') as f:
+            json.dump(final_index, f, indent=4, ensure_ascii=False)
+        print(f"Done! Site built in '{WEB_DIR}'. Indexed {len(final_index)} categories.")
+
     # Update Timestamp File at end of successful run
     with open(COPY_TIMESTAMP_FILE, 'w') as f:
         f.write("timestamp")
-    
-    print(f"Done! Site built in '{WEB_DIR}'. Indexed {len(final_index)} categories.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
