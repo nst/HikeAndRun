@@ -13,22 +13,22 @@ A static, lightweight web software for displaying and sharing GPX tracks.
 
 [https://seriot.ch/hike\_and\_run/](https://seriot.ch/hike_and_run/)
 
-### Architecture
+### Structure
 
 No database. Everything runs in the browser.
 
 ```
-# Python Script
-hr.py                            - generate public GPX files and tours index
-
-# Front end
-/hike_and_run/tours.html         - HTML container
-/hike_and_run/tours.css          - stylesheet
-/hike_and_run/tours.js           - logic to displaying maps, lists, and tours
-
-# Data
-/hike_and_run//tours/tours.json  - tours index
-/hike_and_run//tours/*/          - one directory per tour
+.
+├── hr.py             # The build script
+├── src/              # Source directory (Input)
+│   ├── 10 Valais/    # Region folder (Organized by you)
+│   └── 20 France/
+│
+└── hike_and_run/     # Web directory (Output / Web Server Root)
+    ├── tours.html    # Main application HTML
+    ├── tours.css     # Styles
+    ├── tours.js      # Front-end Logic
+    └── tours/        # One project per tour
 ```
 
 ### Adding a new Tour
