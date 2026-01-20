@@ -28,12 +28,12 @@ No database. Everything runs in the browser.
     ├── tours.html    # Main application HTML
     ├── tours.css     # Styles
     ├── tours.js      # Front-end Logic
-    └── tours/        # One project per tour
+    └── tours/        # One directory per tour
 ```
 
 ### Adding a new Tour
 
-#### Step 1: Add the GPX File
+#### Step 1: Add the GPX Files and the Photos
 
 Copy a GPX file in `/src/REGION/TOUR_ID/`.
 
@@ -41,8 +41,10 @@ Example: `/src/France/mont_blanc/`.
 
 A tour can be made of several GPX files.
 
-* **Ordering:** You can prefix region folders with numbers (e.g., `10 Valais`, `20 France`) to define the sort order.
+* **Regions Ordering:** You can prefix region folders with numbers (e.g., `10 Valais`, `20 France`) to define the sort order.
 * **Races:** If the tour is a race, start the folder name with an underscore (e.g., `_sierre_zinal`).
+
+You must add three photos, named `1.jpg`, `2.jpg`, and `3.jpg`.
 
 #### Step 2: Generate the Public GPX file and the Metadata
 
@@ -57,10 +59,11 @@ The script will:
   * auto-format dates: `YYYY-MM-DD` for races, `Month YYYY` for tours
   * generate a cached geometry file at `src/REGION/TOUR_ID/polyline.json`
   * copy the clean GPX and photos to the web folder: `hike_and_run/tours/TOUR_ID/`
+  * copy the `.jpg` files
   * update the global index at `hike_and_run/tours/tours.json`
   * tours are ordered by region
-  * races are sorted by date (newest first)
-  * other tours are sorted by highest altitude
+  * races are ordered by date (newest first)
+  * other tours are ordered by highest altitude
 
 #### Step 3: Edit the Source GPX Metadata
 
@@ -78,11 +81,9 @@ Example:
       <keywords>2025-06-01</keywords>
     </metadata>
 
-#### Step 4: Add the Photos
+Re-run `python3 hr.py` to copy the modified gpx files from `/src/` into `/hike_and_run/tours/`.
 
-Add exactly three photos, named `1.jpg`, `2.jpg`, and `3.jpg`.
-
-### Local Run
+### Stel 4: Local Run
 
 You can run Hike and Run localy with:
 
@@ -90,7 +91,7 @@ You can run Hike and Run localy with:
 
 and open [http://localhost:8000/](http://localhost:8000/)
 
-### Deployment
+### Step 5: Deployment
 
 Copy the `hike_and_run` directory on your web server.
 
